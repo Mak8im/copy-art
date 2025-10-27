@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Повтори рисунок</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .score, .level {
+            font-size: 1.2rem;
+        }
+        
+        .game-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .canvas-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .canvas {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 2px;
+            width: 300px;
+            height: 300px;
+            background-color: #333;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .pixel {
+            background-color: #444;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+        
+        .pixel:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(255, 65, 108, 0.6);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .timer {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            min-width: 100px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .timer.warning {
+            color: #ff9800;
+            animation: pulse 1s infinite;
+            background: rgba(255, 152, 0, 0.2);
+        }
+        
+        .timer.danger {
+            color: #f44336;
+            animation: pulse 0.5s infinite;
+            background: rgba(244, 67, 54, 0.2);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+        }
+        
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-option.selected {
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+        
+        .status {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            min-height: 30px;
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        
+        .success {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
+            color: #c8e6c9;
+            border: 1px solid #4caf50;
+            animation: celebrate 0.5s ease-in-out;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(244, 67, 54, 0.1));
+            color: #ffcdd2;
+            border: 1px solid #f44336;
+        }
+        
+        .info {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(33, 150, 243, 0.1));
+            color: #bbdefb;
+            border: 1px solid #2196f3;
+        }
+        
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .message-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        
+        .message-container h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #ffd54f;
+        }
+        
+        .message-container p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+            }
+            
+            .canvas {
+                width: 250px;
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Повтори рисунок 🎨</h1>
+            <p class="description">У вас есть 25 секунд, чтобы повторить показанный рисунок!</p>
+        </header>
+        
+        <div class="game-info">
+            <div class="score">✨ Счет: <span id="score">0</span></div>
+            <div class="level">🚀 Уровень: <span id="level">1</span></div>
+        </div>
+        
+        <div class="game-area">
+            <div class="canvas-container">
+                <h2 class="canvas-title">🎯 Образец для повторения</h2>
+                <div class="canvas" id="sample-canvas"></div>
+                <div class="timer" id="timer">25</div>
+            </div>
+            
+            <div class="canvas-container">
+                <h2 class="canvas-title">✏️ Ваш рисунок</h2>
+                <div class="canvas" id="user-canvas"></div>
+                <div class="controls">
+                    <button class="btn" id="start-btn">🎮 Старт</button>
+                    <button class="btn" id="check-btn" disabled>🔍 Проверить</button>
+                    <button class="btn" id="clear-btn" disabled>🧹 Очистить</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="color-palette" id="color-palette"></div>
+        
+        <div class="status" id="status">Нажмите "Старт", чтобы начать игру! 🎯</div>
+        
+        <div class="instructions">
+            <h3>📋 Как играть:</h3>
+            <ol>
+                <li>Нажмите кнопку "Старт", чтобы увидеть рисунок для повторения</li>
+                <li>У вас есть 25 секунд, чтобы повторить рисунок</li>
+                <li>Выберите цвет из палитры внизу</li>
+                <li>Кликайте по пикселям на правом поле, чтобы закрасить их выбранным цветом</li>
+                <li>Нажмите "Проверить" или дождитесь окончания времени</li>
+                <li>После проверки автоматически появится следующий рисунок</li>
+                <li>Используйте "Очистить", чтобы начать заново текущий рисунок</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="message-container" id="message-container">
+        <h2 id="message-title">Заголовок</h2>
+        <p id="message-text">Текст сообщения</p>
+        <button class="btn" id="message-ok">Понятно</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Элементы DOM
+            const sampleCanvas = document.getElementById('sample-canvas');
+            const userCanvas = document.getElementById('user-canvas');
+            const colorPalette = document.getElementById('color-palette');
+            const startBtn = document.getElementById('start-btn');
+            const checkBtn = document.getElementById('check-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const status = document.getElementById('status');
+            const timer = document.getElementById('timer');
+            const scoreElement = document.getElementById('score');
+            const levelElement = document.getElementById('level');
+            const messageContainer = document.getElementById('message-container');
+            const messageTitle = document.getElementById('message-title');
+            const messageText = document.getElementById('message-text');
+            const messageOk = document.getElementById('message-ok');
+            
+            // Цветовая палитра (10 цветов)
+            const colors = [
+                '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF',
+                '#00FFFF', '#FFA500', '#800080', '#FFC0CB', '#FFFFFF'
+            ];
+            
+            // Переменные игры
+            let selectedColor = colors[0];
+            let samplePixels = [];
+            let userPixels = [];
+            let gameStarted = false;
+            let timeLeft = 25;
+            let timerInterval;
+            let score = 0;
+            let level = 1;
+            let currentPattern = [];
+            
+            // Инициализация палитры цветов
+            function initColorPalette() {
+                colors.forEach(color => {
+                    const colorOption = document.createElement('div');
+                    colorOption.className = 'color-option';
+                    colorOption.style.backgroundColor = color;
+                    colorOption.addEventListener('click', () => {
+                        if (gameStarted) {
+                            selectedColor = color;
+                            document.querySelectorAll('.color-option').forEach(opt => {
+                                opt.classList.remove('selected');
+                            });
+                            colorOption.classList.add('selected');
+                        }
+                    });
+                    colorPalette.appendChild(colorOption);
+                });
+                
+                // Выбрать первый цвет по умолчанию
+                document.querySelector('.color-option').classList.add('selected');
+            }
+            
+            // Инициализация холстов
+            function initCanvases() {
+                // Очистка холстов
+                sampleCanvas.innerHTML = '';
+                userCanvas.innerHTML = '';
+                samplePixels = [];
+                userPixels = [];
+                
+                // Создание пикселей 10x10
+                for (let i = 0; i < 100; i++) {
+                    // Пиксели для образца
+                    const samplePixel = document.createElement('div');
+                    samplePixel.className = 'pixel';
+                    sampleCanvas.appendChild(samplePixel);
+                    samplePixels.push(samplePixel);
+                    
+                    // Пиксели для пользователя
+                    const userPixel = document.createElement('div');
+                    userPixel.className = 'pixel';
+                    userPixel.addEventListener('click', () => {
+                        if (gameStarted && timeLeft > 0) {
+                            userPixel.style.backgroundColor = selectedColor;
+                            userPixels[i] = selectedColor;
+                        }
+                    });
+                    userCanvas.appendChild(userPixel);
+                    userPixels.push(null);
+                }
+            }
+            
+            // Генерация случайного пиксельного рисунка
+            function generateRandomPattern() {
+                // Очистка предыдущего рисунка
+                samplePixels.forEach(pixel => {
+                    pixel.style.backgroundColor = '';
+                });
+                
+                // Создание случайного рисунка (15-25 закрашенных пикселей)
+                currentPattern = [];
+                const numPixels = 15 + Math.floor(Math.random() * 11); // 15-25 пикселей
+                
+                for (let i = 0; i < numPixels; i++) {
+                    let randomIndex;
+                    do {
+                        randomIndex = Math.floor(Math.random() * 100);
+                    } while (currentPattern.includes(randomIndex));
+                    
+                    currentPattern.push(randomIndex);
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    samplePixels[randomIndex].style.backgroundColor = randomColor;
+                }
+            }
+            
+            // Запуск таймера
+            function startTimer() {
+                timeLeft = 25;
+                timer.textContent = timeLeft;
+                timer.className = 'timer';
+                
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    timer.textContent = timeLeft;
+                    
+                    if (timeLeft <= 10) {
+                        timer.classList.add('warning');
+                    }
+                    
+                    if (timeLeft <= 5) {
+                        timer.classList.remove('warning');
+                        timer.classList.add('danger');
+                    }
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        timeUp();
+                    }
+                }, 1000);
+            }
+            
+            // Показать красивое сообщение
+            function showMessage(title, text) {
+                messageTitle.textContent = title;
+                messageText.textContent = text;
+                messageContainer.style.display = 'block';
+            }
+            
+            // Действия при окончании времени
+            function timeUp() {
+                gameStarted = false;
+                checkBtn.disabled = true;
+                clearBtn.disabled = true;
+                
+                let correctPixels = 0;
+                for (let i = 0; i < currentPattern.length; i++) {
+                    const pixelIndex = currentPattern[i];
+                    const sampleColor = samplePixels[pixelIndex].style.backgroundColor;
+                    const userColor = userPixels[pixelIndex];
+                    
+                    if (userColor && colorToRgb(userColor) === sampleColor) {
+                        correctPixels++;
+                    }
+                }
+                
+                const accuracy = Math.round((correctPixels / currentPattern.length) * 100);
+                
+                if (accuracy === 100) {
+                    showMessage("🎉 Время вышло, но...", "Вы успели идеально повторить рисунок! Это невероятно! 🌟");
+                    score += 10;
+                } else if (accuracy >= 80) {
+                    showMessage("⏰ Время вышло!", `Вы почти успели! ${accuracy}% рисунка правильные! Отличная работа! ✨`);
+                    score += 7;
+                } else if (accuracy >= 60) {
+                    showMessage("⏰ Время вышло!", `Неплохой результат! ${accuracy}% рисунка совпадают. Продолжайте в том же духе! 💪`);
+                    score += 5;
+                } else if (accuracy >= 40) {
+                    showMessage("⏰ Время вышло!", `Вы успели закрасить ${accuracy}% правильных пикселей. Следующий раз получится лучше! 👍`);
+                    score += 3;
+                } else if (accuracy >= 20) {
+                    showMessage("⏰ Время вышло!", `Вы начали, но не успели закончить. Всего ${accuracy}% правильных пикселей. Не сдавайтесь! 🌈`);
+                    score += 1;
+                } else {
+                    showMessage("⏰ Время вышло!", "К сожалению, вы не успели повторить рисунок. Попробуйте еще раз! 🎯");
+                }
+                
+                scoreElement.textContent = score;
+                status.textContent = 'Готовим следующий рисунок...';
+                status.className = 'status info';
+            }
+            
+            // Проверка рисунка пользователя
+            function checkUserDrawing() {
+                if (!gameStarted) return;
+                
+                clearInterval(timerInterval);
+                
+                let correctPixels = 0;
+                
+                for (let i = 0; i < currentPattern.length; i++) {
+                    const pixelIndex = currentPattern[i];
+                    const sampleColor = samplePixels[pixelIndex].style.backgroundColor;
+                    const userColor = userPixels[pixelIndex];
+                    
+                    if (userColor && colorToRgb(userColor) === sampleColor) {
+                        correctPixels++;
+                    }
+                }
+                
+                const accuracy = Math.round((correctPixels / currentPattern.length) * 100);
+                
+                if (accuracy === 100) {
+                    showMessage("🎉 Поздравляем!", "Вы идеально повторили рисунок! Это просто великолепно! 🌟✨");
+                    status.textContent = '🎉 Идеальное повторение! Вы настоящий художник! 🎨';
+                    status.className = 'status success';
+                    score += 10;
+                } else if (accuracy >= 90) {
+                    showMessage("✨ Отличный результат!", `Почти идеально! ${accuracy}% правильных пикселей! Вы молодец! 💫`);
+                    status.textContent = `✨ Почти идеально! ${accuracy}% правильных пикселей!`;
+                    status.className = 'status success';
+                    score += 9;
+                } else if (accuracy >= 80) {
+                    showMessage("👍 Очень хорошо!", `Отличная работа! ${accuracy}% рисунка совпадают! Продолжайте в том же духе! 🚀`);
+                    status.textContent = `👍 Отличная работа! ${accuracy}% правильных пикселей!`;
+                    status.className = 'status success';
+                    score += 8;
+                } else if (accuracy >= 70) {
+                    showMessage("👏 Хороший результат!", `Хорошо постарались! ${accuracy}% рисунка правильные. Почти у цели! 💪`);
+                    status.textContent = `👏 Хороший результат! ${accuracy}% правильных пикселей!`;
+                    status.className = 'status';
+                    score += 7;
+                } else if (accuracy >= 60) {
+                    showMessage("😊 Неплохо!", `${accuracy}% рисунка совпадают. Уже лучше! Следующий раз будет идеально! 🌈`);
+                    status.textContent = `😊 Неплохой результат! ${accuracy}% правильных пикселей.`;
+                    status.className = 'status';
+                    score += 6;
+                } else if (accuracy >= 50) {
+                    showMessage("🤔 Можно лучше", `Половина рисунка правильная (${accuracy}%). Есть куда стремиться! 📈`);
+                    status.textContent = `🤔 Половина рисунка правильная (${accuracy}%).`;
+                    status.className = 'status';
+                    score += 5;
+                } else if (accuracy >= 40) {
+                    showMessage("🧐 Есть ошибки", `Только ${accuracy}% правильных пикселей. Внимательнее смотрите на образец! 👀`);
+                    status.textContent = `🧐 Есть ошибки. Только ${accuracy}% правильных пикселей.`;
+                    status.className = 'status error';
+                    score += 4;
+                } else if (accuracy >= 30) {
+                    showMessage("😕 Мало совпадений", `Всего ${accuracy}% рисунка правильные. Нужно быть внимательнее! 🔍`);
+                    status.textContent = `😕 Мало совпадений. Всего ${accuracy}% правильных пикселей.`;
+                    status.className = 'status error';
+                    score += 3;
+                } else if (accuracy >= 20) {
+                    showMessage("😞 Почти не совпадает", `Очень мало правильных пикселей (${accuracy}%). Попробуйте еще раз! 🎯`);
+                    status.textContent = `😞 Почти не совпадает. Всего ${accuracy}% правильных пикселей.`;
+                    status.className = 'status error';
+                    score += 2;
+                } else if (accuracy >= 10) {
+                    showMessage("😢 Почти мимо", `Почти все пиксели не совпадают (${accuracy}%). Не расстраивайтесь! 🌈`);
+                    status.textContent = `😢 Почти мимо. Всего ${accuracy}% правильных пикселей.`;
+                    status.className = 'status error';
+                    score += 1;
+                } else {
+                    showMessage("💫 Полный провал", "К сожалению, рисунок не совпадает. Но не сдавайтесь! 💪");
+                    status.textContent = '💫 К сожалению, рисунок не совпадает. Попробуйте еще раз!';
+                    status.className = 'status error';
+                }
+                
+                scoreElement.textContent = score;
+                
+                // Переход к следующему рисунку через 3 секунды после закрытия сообщения
+                // (переход происходит при нажатии на кнопку в сообщении)
+            }
+            
+            // Переход на следующий уровень
+            function nextLevel() {
+                level++;
+                levelElement.textContent = level;
+                startNewRound();
+            }
+            
+            // Начало нового раунда
+            function startNewRound() {
+                gameStarted = true;
+                clearUserCanvas();
+                generateRandomPattern();
+                startTimer();
+                
+                checkBtn.disabled = false;
+                clearBtn.disabled = false;
+                startBtn.disabled = true;
+                
+                status.textContent = 'Повторите рисунок, используя цвета из палитры! У вас 25 секунд! ⏰';
+                status.className = 'status info';
+                
+                // Включить выбор цвета
+                document.querySelectorAll('.color-option').forEach(opt => {
+                    opt.style.cursor = 'pointer';
+                });
+            }
+            
+            // Вспомогательная функция для преобразования hex в rgb
+            function colorToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? 
+                    `rgb(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)})` 
+                    : null;
+            }
+            
+            // Очистка холста пользователя
+            function clearUserCanvas() {
+                const userPixelsElements = userCanvas.querySelectorAll('.pixel');
+                userPixelsElements.forEach(pixel => {
+                    pixel.style.backgroundColor = '';
+                });
+                userPixels.fill(null);
+                status.textContent = 'Холст очищен. Продолжайте рисовать! 🎨';
+                status.className = 'status info';
+            }
+            
+            // Обработчики событий
+            startBtn.addEventListener('click', startNewRound);
+            
+            checkBtn.addEventListener('click', checkUserDrawing);
+            
+            clearBtn.addEventListener('click', () => {
+                clearUserCanvas();
+            });
+            
+            messageOk.addEventListener('click', () => {
+                messageContainer.style.display = 'none';
+                nextLevel();
+            });
+            
+            // Инициализация игры
+            initColorPalette();
+            initCanvases();
+            
+            // Начальное сообщение
+            status.textContent = 'Нажмите "Старт", чтобы начать игру! 🎮';
+            status.className = 'status info';
+            
+            // Изначально отключить выбор цвета
+            document.querySelectorAll('.color-option').forEach(opt => {
+                opt.style.cursor = 'not-allowed';
+            });
+        });
+    </script>
+</body>
+</html>
