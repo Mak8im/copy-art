@@ -97,11 +97,33 @@
             background-color: #444;
             border-radius: 2px;
             transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
         }
         
         .pixel:hover {
             opacity: 0.8;
             transform: scale(1.05);
+        }
+        
+        .pixel.filled {
+            animation: pixelPop 0.2s ease-out;
+        }
+        
+        .pixel.cleared {
+            animation: pixelClear 0.2s ease-out;
+        }
+        
+        @keyframes pixelPop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes pixelClear {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
         
         .controls {
@@ -187,6 +209,7 @@
             cursor: pointer;
             transition: all 0.2s;
             border: 2px solid transparent;
+            position: relative;
         }
         
         .color-option:hover {
@@ -196,6 +219,21 @@
         .color-option.selected {
             border: 2px solid white;
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+        
+        .color-option.selected::after {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .eraser-mode .color-option.selected::after {
+            content: "✕";
         }
         
         .status {
@@ -282,6 +320,26 @@
             margin-bottom: 8px;
         }
         
+        .tool-tip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .color-option:hover .tool-tip {
+            opacity: 1;
+        }
+        
         @media (max-width: 768px) {
             .game-area {
                 flex-direction: column;
@@ -324,7 +382,11 @@
             </div>
         </div>
         
-        <div class="color-palette" id="color-palette"></div>
+        <div class="color-palette" id="color-palette">
+            <div class="color-option" id="eraser" style="background-color: #333;">
+                <span class="tool-tip">Ластик</span>
+            </div>
+        </div>
         
         <div class="status" id="status">Нажмите "Старт", чтобы начать игру! 🎯</div>
         
@@ -333,8 +395,9 @@
             <ol>
                 <li>Нажмите кнопку "Старт", чтобы увидеть рисунок для повторения</li>
                 <li>У вас есть 25 секунд, чтобы повторить рисунок</li>
-                <li>Выберите цвет из палитры внизу</li>
-                <li>Кликайте по пикселям на правом поле, чтобы закрасить их выбранным цветом</li>
+                <li>Выберите цвет из палитры внизу или ластик для удаления</li>
+                <li>Кликайте по пикселям на правом поле, чтобы закрасить их</li>
+                <li><strong>Дважды кликните на пиксель, чтобы удалить цвет</strong></li>
                 <li>Нажмите "Проверить" или дождитесь окончания времени</li>
                 <li>После проверки автоматически появится следующий рисунок</li>
                 <li>Используйте "Очистить", чтобы начать заново текущий рисунок</li>
@@ -365,6 +428,7 @@
             const messageTitle = document.getElementById('message-title');
             const messageText = document.getElementById('message-text');
             const messageOk = document.getElementById('message-ok');
+            const eraser = document.getElementById('eraser');
             
             // Цветовая палитра (10 цветов)
             const colors = [
@@ -382,27 +446,56 @@
             let score = 0;
             let level = 1;
             let currentPattern = [];
+            let isEraserMode = false;
+            let clickTimers = {};
             
             // Инициализация палитры цветов
             function initColorPalette() {
-                colors.forEach(color => {
+                // Добавляем ластик
+                eraser.addEventListener('click', () => {
+                    if (gameStarted) {
+                        isEraserMode = true;
+                        selectedColor = null;
+                        document.querySelectorAll('.color-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        eraser.classList.add('selected');
+                        colorPalette.classList.add('eraser-mode');
+                        status.textContent = 'Режим ластика активирован. Кликайте на пиксели для удаления 🧹';
+                        status.className = 'status info';
+                    }
+                });
+                
+                // Добавляем цвета
+                colors.forEach((color, index) => {
                     const colorOption = document.createElement('div');
                     colorOption.className = 'color-option';
                     colorOption.style.backgroundColor = color;
+                    colorOption.dataset.color = color;
+                    
+                    const toolTip = document.createElement('span');
+                    toolTip.className = 'tool-tip';
+                    toolTip.textContent = `Цвет ${index + 1}`;
+                    colorOption.appendChild(toolTip);
+                    
                     colorOption.addEventListener('click', () => {
                         if (gameStarted) {
+                            isEraserMode = false;
                             selectedColor = color;
                             document.querySelectorAll('.color-option').forEach(opt => {
                                 opt.classList.remove('selected');
                             });
                             colorOption.classList.add('selected');
+                            colorPalette.classList.remove('eraser-mode');
+                            status.textContent = `Выбран цвет ${index + 1}. Кликайте на пиксели для закрашивания 🎨`;
+                            status.className = 'status info';
                         }
                     });
                     colorPalette.appendChild(colorOption);
                 });
                 
                 // Выбрать первый цвет по умолчанию
-                document.querySelector('.color-option').classList.add('selected');
+                document.querySelector('.color-option[data-color]').classList.add('selected');
             }
             
             // Инициализация холстов
@@ -424,15 +517,60 @@
                     // Пиксели для пользователя
                     const userPixel = document.createElement('div');
                     userPixel.className = 'pixel';
-                    userPixel.addEventListener('click', () => {
-                        if (gameStarted && timeLeft > 0) {
-                            userPixel.style.backgroundColor = selectedColor;
-                            userPixels[i] = selectedColor;
-                        }
-                    });
+                    userPixel.dataset.index = i;
+                    
+                    // Обработчик кликов для пикселей
+                    userPixel.addEventListener('click', handlePixelClick);
+                    
                     userCanvas.appendChild(userPixel);
                     userPixels.push(null);
                 }
+            }
+            
+            // Обработчик кликов по пикселям
+            function handlePixelClick(event) {
+                if (!gameStarted || timeLeft <= 0) return;
+                
+                const pixel = event.currentTarget;
+                const index = parseInt(pixel.dataset.index);
+                
+                // Проверяем двойной клик
+                if (clickTimers[index]) {
+                    clearTimeout(clickTimers[index]);
+                    delete clickTimers[index];
+                    
+                    // Двойной клик - удаляем пиксель
+                    pixel.style.backgroundColor = '';
+                    pixel.classList.remove('filled');
+                    pixel.classList.add('cleared');
+                    setTimeout(() => pixel.classList.remove('cleared'), 200);
+                    userPixels[index] = null;
+                    
+                    status.textContent = 'Пиксель удален! Можно продолжать рисовать 🎨';
+                    status.className = 'status info';
+                    return;
+                }
+                
+                // Одинарный клик - закрашиваем или стираем
+                clickTimers[index] = setTimeout(() => {
+                    delete clickTimers[index];
+                    
+                    if (isEraserMode) {
+                        // Режим ластика
+                        pixel.style.backgroundColor = '';
+                        pixel.classList.remove('filled');
+                        pixel.classList.add('cleared');
+                        setTimeout(() => pixel.classList.remove('cleared'), 200);
+                        userPixels[index] = null;
+                    } else if (selectedColor) {
+                        // Режим рисования
+                        pixel.style.backgroundColor = selectedColor;
+                        pixel.classList.remove('cleared');
+                        pixel.classList.add('filled');
+                        setTimeout(() => pixel.classList.remove('filled'), 200);
+                        userPixels[index] = selectedColor;
+                    }
+                }, 300); // Время для определения двойного клика
             }
             
             // Генерация случайного пиксельного рисунка
@@ -612,9 +750,6 @@
                 }
                 
                 scoreElement.textContent = score;
-                
-                // Переход к следующему рисунку через 3 секунды после закрытия сообщения
-                // (переход происходит при нажатии на кнопку в сообщении)
             }
             
             // Переход на следующий уровень
@@ -634,6 +769,15 @@
                 checkBtn.disabled = false;
                 clearBtn.disabled = false;
                 startBtn.disabled = true;
+                
+                // Сбрасываем режим ластика
+                isEraserMode = false;
+                selectedColor = colors[0];
+                document.querySelectorAll('.color-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                document.querySelector('.color-option[data-color]').classList.add('selected');
+                colorPalette.classList.remove('eraser-mode');
                 
                 status.textContent = 'Повторите рисунок, используя цвета из палитры! У вас 25 секунд! ⏰';
                 status.className = 'status info';
@@ -657,6 +801,7 @@
                 const userPixelsElements = userCanvas.querySelectorAll('.pixel');
                 userPixelsElements.forEach(pixel => {
                     pixel.style.backgroundColor = '';
+                    pixel.classList.remove('filled', 'cleared');
                 });
                 userPixels.fill(null);
                 status.textContent = 'Холст очищен. Продолжайте рисовать! 🎨';
